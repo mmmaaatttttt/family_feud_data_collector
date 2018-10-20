@@ -1,7 +1,7 @@
 exports.shorthands = undefined;
 
 exports.up = pgm => {
-  pgm.createTable("answers", {
+  pgm.createTable("guesses", {
     id: "id",
     question_id: {
       type: "integer",
