@@ -7,4 +7,3 @@ exports.up = pgm => {
     title: { type: "text", notNull: true }
   });
 };
-
