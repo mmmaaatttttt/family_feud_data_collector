@@ -1,0 +1,19 @@
+{
+  "name": "family-feud-data-collector",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "node-pg-migrate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^6.1.0",
+    "node-pg-migrate": "^3.11.0",
+    "pg": "^7.5.0",
+    "promptly": "^3.0.3"
+  }
+}
