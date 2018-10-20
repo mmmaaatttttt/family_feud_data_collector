@@ -1,0 +1,5 @@
+class Episode {
+  async create() {
+    
+  }
+}
