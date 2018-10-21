@@ -14,13 +14,26 @@ class Team {
     return new Team(newUser);
   }
 
-  async previousEpisodeAirDates() {
+  static async get(id) {
     const result = await db.query(`
-      SELECT e.air_date 
+      SELECT * FROM teams WHERE id = $1
+    `, [id]);
+    let user = result.rows[0];
+    return new Team(user);
+  }
+
+  static async previousEpisodeAirDates(name) {
+    // figure out correct query here
+    const result = await db.query(`
+      SELECT e.id, e.air_date 
       FROM episodes e
-      WHERE e.first_team_id = $1
-      OR e.second_team_id = $1
-    `, [this.id]);
+      JOIN teams t1
+      ON e.first_team_id = t1.id
+      JOIN teams t2
+      ON e.second_team_id = t2.id
+      WHERE t1.name = $1
+      OR t2.name = $1
+    `, [name]);
     return result.rows;
   }
 }
