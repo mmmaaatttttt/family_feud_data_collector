@@ -39,7 +39,7 @@ class Episode {
     return new Episode(newEpisode);
   }
 
-  async get title() {
+  async title() {
     let team1 = await Team.find(this.first_team_id);
     let team2 = await Team.find(this.second_team_id);
     return `${team1.name} vs. ${team2.name}`;
