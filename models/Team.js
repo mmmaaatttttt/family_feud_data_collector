@@ -1,4 +1,5 @@
-const { prompt, choose } = require("promptly");
+const { choose } = require("promptly");
+const moment = require("moment");
 const groupBy = require("lodash/groupBy");
 const size = require("lodash/size");
 const db = require("../db");
@@ -25,23 +26,19 @@ class Team {
     return new Team(user);
   }
 
-  static async findByName(name) {
-    const result = await db.query(`
-      SELECT * FROM teams WHERE name = $1
-    `, [name]);
-    return result.rows.map(row => new Team(row));
-  }
-
   static async findOrCreate(name) {
     const results = await Team.previousTeams(name);
     let choice = "";
     if (size(results) > 0) {
       let choiceMsg = `Teams named ${name} already exist. Is one of these teams the one you're referring to?\n`;
-      for (let id of results) {
-        choiceMsg += `${id}. Episodes: ${results[id].air_date.join(", ")}\n`
+      for (let id in results) {
+        let formattedDates = results[id].map(r => (
+          moment(r.air_date).format("MM/DD/YYYY")
+        )).join(", ")
+        choiceMsg += `${id}. Episodes: ${formattedDates}\n`
       }
       choiceMsg += "Enter the team's id if you've found it here.\nOtherwise just hit enter, and I'll create a new team for you."
-      choice = await choose(choiceMsg, Object.keys(results).concat(""));
+      choice = await choose(choiceMsg, Object.keys(results).concat(""), { default: "" });
     }
     if (choice) {
       return await Team.find(+choice);
