@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^6.1.0",
+    "lodash": "^4.17.11",
     "node-pg-migrate": "^3.11.0",
     "pg": "^7.5.0",
     "promptly": "^3.0.3"
