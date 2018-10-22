@@ -7,7 +7,6 @@ class Episode {
     episode_number,
     season,
     air_date,
-    title,
     first_team_id,
     second_team_id
   }) {
@@ -41,8 +40,8 @@ class Episode {
   }
 
   async get title() {
-    let team1 = await Team.get(this.first_team_id);
-    let team2 = await Team.get(this.second_team_id);
+    let team1 = await Team.find(this.first_team_id);
+    let team2 = await Team.find(this.second_team_id);
     return `${team1.name} vs. ${team2.name}`;
   }
 }
