@@ -3,6 +3,7 @@ const moment = require("moment");
 const groupBy = require("lodash/groupBy");
 const size = require("lodash/size");
 const db = require("../db");
+const Person = require("./");
 
 class Team {
   constructor({id, name}) {
@@ -63,6 +64,18 @@ class Team {
       OR t2.name = $1
     `, [name]);
     return groupBy(results.rows, "team_id");
+  }
+
+  async people() {
+    const results = await db.query(`
+      SELECT * FROM people
+      WHERE team_id = $1
+    `, [this.id]);
+    return results.rows.map(row => new Person(row));
+  }
+
+  async points() {
+    // determine points total for team
   }
 }
 
