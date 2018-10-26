@@ -2,20 +2,13 @@ const db = require("../db");
 const { Team } = require("./");
 
 class Episode {
-  constructor({
-    id,
-    episode_number,
-    season,
-    air_date,
-    first_team_id,
-    second_team_id
-  }) {
-    this.id = id;
-    this.episode_number = episode_number;
-    this.season = season;
-    this.air_date = air_date;
-    this.first_team_id = first_team_id;
-    this.second_team_id = second_team_id;
+  constructor(obj) {
+    this.id = obj.id;
+    this.episode_number = obj.episode_number;
+    this.season = obj.season;
+    this.air_date = obj.air_date;
+    this.first_team_id = obj.first_team_id;
+    this.second_team_id = obj.second_team_id;
   }
 
   static async create(dataObj) {

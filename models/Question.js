@@ -1,23 +1,16 @@
 class Question {
-  constructor({
-    id,
-    episode_id,
-    text,
-    order,
-    round_type,
-    team_decides_to_play
-  }) {
-    this.id = id;
-    this.episode_id = episode_id;
-    this.text = text;
-    this.order = order;
-    this.round_type = round_type;
-    this.team_decides_to_play = team_decides_to_play;
+  constructor(obj) {
+    this.id = obj.id;
+    this.episode_id = obj.episode_id;
+    this.text = obj.text;
+    this.order = obj.order;
+    this.round_type = obj.round_type;
+    this.team_decides_to_play = obj.team_decides_to_play;
   }
 
   static async create(dataObj) {
     const result = await db.query(`
-      INSERT INTO episodes (
+      INSERT INTO questions (
         episode_id,
         text,
         order,
