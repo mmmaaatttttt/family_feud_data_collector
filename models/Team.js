@@ -70,6 +70,7 @@ class Team {
     const results = await db.query(`
       SELECT * FROM people
       WHERE team_id = $1
+      ORDER BY order ASC
     `, [this.id]);
     return results.rows.map(row => new Person(row));
   }
