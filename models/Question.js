@@ -1,3 +1,5 @@
+const Answer = require("./");
+
 class Question {
   constructor(obj) {
     this.id = obj.id;
@@ -27,6 +29,25 @@ class Question {
     ]);
     let newQuestion = result.rows[0];
     return new Question(newQuestion);
+  }
+
+  async answers() {
+    const results = await db.query(`
+      SELECT * FROM answers
+      WHERE question_id = $1
+      ORDER BY order ASC
+    `, [this.id]);
+    return results.rows.map(row => new Answer(row));
+  }
+
+  async setToPass() {
+    const result = await db.query(`
+      UPDATE questions
+      SET team_decides_to_play = false
+      WHERE id=$1 RETURNING *
+    `, [this.id]);
+    let updatedQuestion = result.rows[0];
+    return new Question(updatedQuestion);
   }
 }
 
