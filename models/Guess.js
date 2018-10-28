@@ -21,7 +21,7 @@ class Guess {
     `, [
       dataObj.question_id,
       dataObj.text,
-      dataObj.matching_answer_id,
+      dataObj.matching_answer_id || null,
       dataObj.order,
       dataObj.person_id
     ]);
