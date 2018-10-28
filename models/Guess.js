@@ -23,10 +23,14 @@ class Guess {
       dataObj.text,
       dataObj.matching_answer_id || null,
       dataObj.order,
-      dataObj.person_id
+      dataObj.person_id || null
     ]);
     let newGuess = result.rows[0];
     return new Guess(newGuess);
+  }
+
+  isSteal() {
+    return this.matching_answer_id !== null && this.person_id === null;
   }
 }
 

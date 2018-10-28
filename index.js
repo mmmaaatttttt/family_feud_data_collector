@@ -41,7 +41,12 @@ async function record() {
       (questionOrder - 1 + Math.floor((guessOrder - 1) / 2)) %
       CONTESTANTS_PER_TEAM;
 
-    let { answer } = await recordGuessAndAnswer(guessingTeam, teamOrder, guessOrder, question.id);
+    let { answer } = await recordGuessAndAnswer(
+      guessingTeam,
+      guessOrder,
+      question.id,
+      teamOrder
+    );
 
     if (
       answer.order === 1 ||
@@ -72,15 +77,26 @@ async function record() {
   while (numStrikes < 3 && question.answers() < numAnswers) {
     guessOrder++;
     teamOrder = (teamOrder + 1) % CONTESTANTS_PER_TEAM;
-    // await new question and answer
-    // if answer is null, numStrikes++
-    // else nothing
+    let { answer } = await recordGuessAndAnswer(
+      guessingTeam,
+      guessOrder,
+      question.id,
+      teamOrder
+    );
+    if (!answer) numStrikes++;
   }
 
-  // if numStrikes === 3, steal opportunity
-  // otherwise guessingTeam gets all the points
+  if (numStrikes === 3) {
+    guessOrder++;
+    guessingTeam = guessingTeam === teams.left ? teams.right : teams.left;
+    await recordGuessAndAnswer(guessingTeam, guessOrder, question.id);
+  }
 
-  // record fast money
+  while (question.answers() < numAnswers) {
+    await recordAnswer("Please record the next answer that nobody guessed.", question.id);
+  }
+
+  // fast money
 }
 
 record().then(() => {
@@ -115,11 +131,11 @@ async function createEpisodeAndTeams() {
   return { teams, episode };
 }
 
-async function recordGuessAndAnswer(team, teamOrder, guessOrder, question_id) {
+async function recordGuessAndAnswer(team, guessOrder, question_id, teamOrder=null) {
   let teamMembers = team.people();
   let currentPerson = teamMembers[teamOrder];
 
-  if (!currentPerson) {
+  if (!currentPerson && teamOrder) {
     let first_name = await prompt("What is the guesser's name?");
     currentPerson = await Person.create({
       first_name,
@@ -132,14 +148,26 @@ async function recordGuessAndAnswer(team, teamOrder, guessOrder, question_id) {
     question_id,
     text: await prompt(`What was ${currentPerson.first_name}'s guess?`),
     order: guessOrder,
-    person_id: currentPerson.id
+    person_id: currentPerson ? currentPerson.id : null // no person_id for steal attempts
   };
 
-  let answer = null;
-  let answerText = await prompt(
+  let answer = await recordAnswer(
     "Enter the answer text, or hit enter for a strike",
-    { default: "" }
+    question_id
   );
+
+  if (answer) {
+    guessData.matching_answer_id = answer.id;
+  }
+
+  let guess = await Guess.create(guessData);
+
+  return { guess, answer };
+}
+
+async function recordAnswer(msg, question_id) {
+  let answer = null;
+  let answerText = await prompt(msg, { default: "" });
 
   if (answerText) {
     let answerData = {
@@ -149,10 +177,7 @@ async function recordGuessAndAnswer(team, teamOrder, guessOrder, question_id) {
       order: +(await prompt("What's this answer's ranking?"))
     };
     answer = await Answer.create(answerData);
-    guessData.matching_answer_id = answer.id;
   }
 
-  let guess = await Guess.create(guessData);
-
-  return { guess, answer };
+  return answer;
 }
