@@ -8,16 +8,18 @@ class Answer {
 
   static async create(dataObj) {
     const result = await db.query(`
-      INSERT INTO guesses (
+      INSERT INTO answers (
         question_id,
         text,
-        points
+        points,
+        order
       )
       VALUES ($1, $2, $3, $4, $5) RETURNING *
     `, [
       dataObj.question_id,
       dataObj.text,
-      dataObj.points
+      dataObj.points,
+      dataObj.order
     ]);
     let newAnswer = result.rows[0];
     return new Answer(newAnswer);
