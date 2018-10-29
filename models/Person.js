@@ -27,4 +27,4 @@ class Person {
   }
 }
 
-module.exports = Episode;
+module.exports = Person;
