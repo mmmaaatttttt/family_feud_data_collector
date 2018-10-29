@@ -1,3 +1,4 @@
+const db = require("../db");
 const Answer = require("./");
 
 class Question {

@@ -1,3 +1,5 @@
+const db = require("../db");
+
 class Answer {
   constructor(obj) {
     this.id = obj.id;
