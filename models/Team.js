@@ -75,8 +75,21 @@ class Team {
     return results.rows.map(row => new Person(row));
   }
 
-  async points() {
-    // determine points total for team
+  async points(episode_id) {
+    const results = await db.query(`
+      SELECT q.winning_team_id, SUM(a.points) AS points
+      FROM guesses g
+      LEFT JOIN answers a
+      ON a.id = g.matching_answer_id
+      LEFT JOIN questions q
+      ON g.question_id = q.id
+      WHERE g.person_id IS NOT NULL
+      AND q.episode_id = $1
+      AND q.round_type != 'fast_money'
+      GROUP BY winning_team_id
+      HAVING q.winning_team_id = $2
+    `, [episode_id, this.id]);
+    return results[0].points;
   }
 }
 
