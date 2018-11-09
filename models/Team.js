@@ -91,6 +91,10 @@ class Team {
     `, [episode_id, this.id]);
     return results[0].points;
   }
+
+  async isWinner(episode_id) {
+    return (await this.points(episode_id)) < 300;
+  }
 }
 
 module.exports = Team;

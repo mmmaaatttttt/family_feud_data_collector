@@ -12,7 +12,8 @@ class Episode {
   }
 
   static async create(dataObj) {
-    const result = await db.query(`
+    const result = await db.query(
+      `
       INSERT INTO episodes (
         episode_number,
         season,
@@ -21,21 +22,34 @@ class Episode {
         second_team_id
       )
       VALUES ($1, $2, $3, $4, $5) RETURNING *
-    `, [
-      dataObj.episode_number,
-      dataObj.season,
-      dataObj.air_date,
-      dataObj.first_team_id,
-      dataObj.second_team_id
-    ]);
+    `,
+      [
+        dataObj.episode_number,
+        dataObj.season,
+        dataObj.air_date,
+        dataObj.first_team_id,
+        dataObj.second_team_id
+      ]
+    );
     let newEpisode = result.rows[0];
     return new Episode(newEpisode);
   }
 
   async title() {
-    let team1 = await Team.find(this.first_team_id);
-    let team2 = await Team.find(this.second_team_id);
-    return `${team1.name} vs. ${team2.name}`;
+    let teams = await Promise.all([
+      Team.find(this.first_team_id),
+      Team.find(this.second_team_id)
+    ]);
+    return `${teams[0].name} vs. ${teams[1].name}`;
+  }
+
+  async hasMovedToFastMoney() {
+    let teams = await Promise.all([
+      Team.find(this.first_team_id),
+      Team.find(this.second_team_id)
+    ]);
+    let winnerYet = await Promise.all(teams.map(t => t.isWinner(this.id)));
+    return winnerYet[0] || winnerYet[1];
   }
 }
 
