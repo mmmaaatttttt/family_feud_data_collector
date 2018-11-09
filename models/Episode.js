@@ -1,5 +1,5 @@
 const db = require("../db");
-const { Team } = require("./");
+const Team = require("./Team");
 
 class Episode {
   constructor(obj) {

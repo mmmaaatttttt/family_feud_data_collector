@@ -12,7 +12,7 @@ class Person {
     const result = await db.query(`
       INSERT INTO people (
         first_name,
-        order,
+        "order",
         team_id
       )
       VALUES ($1, $2, $3) RETURNING *`,

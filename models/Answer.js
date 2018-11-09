@@ -6,6 +6,7 @@ class Answer {
     this.question_id = obj.question_id;
     this.text = obj.text;
     this.points = obj.points;
+    this.order = obj.order;
   }
 
   static async create(dataObj) {
@@ -14,9 +15,9 @@ class Answer {
         question_id,
         text,
         points,
-        order
+        "order"
       )
-      VALUES ($1, $2, $3, $4, $5) RETURNING *
+      VALUES ($1, $2, $3, $4) RETURNING *
     `, [
       dataObj.question_id,
       dataObj.text,

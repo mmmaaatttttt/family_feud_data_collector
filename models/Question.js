@@ -1,5 +1,5 @@
 const db = require("../db");
-const Answer = require("./");
+const Answer = require("./Answer");
 
 class Question {
   constructor(obj) {
@@ -16,7 +16,7 @@ class Question {
       INSERT INTO questions (
         episode_id,
         text,
-        order,
+        "order",
         round_type,
         team_decides_to_play
       )
@@ -36,7 +36,7 @@ class Question {
     const results = await db.query(`
       SELECT * FROM answers
       WHERE question_id = $1
-      ORDER BY order ASC
+      ORDER BY "order" ASC
     `, [this.id]);
     return results.rows.map(row => new Answer(row));
   }

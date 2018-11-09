@@ -3,7 +3,7 @@ const moment = require("moment");
 const groupBy = require("lodash/groupBy");
 const size = require("lodash/size");
 const db = require("../db");
-const Person = require("./");
+const Person = require("./Person");
 
 class Team {
   constructor({id, name}) {
@@ -70,7 +70,7 @@ class Team {
     const results = await db.query(`
       SELECT * FROM people
       WHERE team_id = $1
-      ORDER BY order ASC
+      ORDER BY "order" ASC
     `, [this.id]);
     return results.rows.map(row => new Person(row));
   }
