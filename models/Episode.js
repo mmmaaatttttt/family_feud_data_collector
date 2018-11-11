@@ -7,8 +7,8 @@ class Episode {
     this.episode_number = obj.episode_number;
     this.season = obj.season;
     this.air_date = obj.air_date;
-    this.first_team_id = obj.first_team_id;
-    this.second_team_id = obj.second_team_id;
+    this.left_team_id = obj.left_team_id;
+    this.right_team_id = obj.right_team_id;
   }
 
   static async create(dataObj) {
@@ -18,8 +18,8 @@ class Episode {
         episode_number,
         season,
         air_date,
-        first_team_id,
-        second_team_id
+        left_team_id,
+        right_team_id
       )
       VALUES ($1, $2, $3, $4, $5) RETURNING *
     `,
@@ -27,8 +27,8 @@ class Episode {
         dataObj.episode_number,
         dataObj.season,
         dataObj.air_date,
-        dataObj.first_team_id,
-        dataObj.second_team_id
+        dataObj.left_team_id,
+        dataObj.right_team_id
       ]
     );
     let newEpisode = result.rows[0];
@@ -37,19 +37,19 @@ class Episode {
 
   async title() {
     let teams = await Promise.all([
-      Team.find(this.first_team_id),
-      Team.find(this.second_team_id)
+      Team.find(this.left_team_id),
+      Team.find(this.right_team_id)
     ]);
     return `${teams[0].name} vs. ${teams[1].name}`;
   }
 
-  async hasMovedToFastMoney() {
+  async hasNoWinner() {
     let teams = await Promise.all([
-      Team.find(this.first_team_id),
-      Team.find(this.second_team_id)
+      Team.find(this.left_team_id),
+      Team.find(this.right_team_id)
     ]);
     let winnerYet = await Promise.all(teams.map(t => t.isWinner(this.id)));
-    return winnerYet[0] || winnerYet[1];
+    return !winnerYet[0] && !winnerYet[1];
   }
 }
 

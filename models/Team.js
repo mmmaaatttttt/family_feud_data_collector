@@ -57,9 +57,9 @@ class Team {
       END AS team_id
       FROM episodes e
       JOIN teams t1
-      ON e.first_team_id = t1.id
+      ON e.left_team_id = t1.id
       JOIN teams t2
-      ON e.second_team_id = t2.id
+      ON e.right_team_id = t2.id
       WHERE t1.name = $1
       OR t2.name = $1
     `, [name]);
@@ -96,5 +96,7 @@ class Team {
     return (await this.points(episode_id)) < 300;
   }
 }
+
+Team.NUM_CONTESTANTS = 5;
 
 module.exports = Team;
