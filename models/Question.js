@@ -41,6 +41,26 @@ class Question {
     return results.rows.map(row => new Answer(row));
   }
 
+  async setBuzzerWinner(deciding_team_id) {
+    const result = await db.query(`
+      UPDATE questions
+      SET deciding_team_id = $1
+      WHERE id=$2 RETURNING *
+    `, [deciding_team_id, this.id]);
+    let updatedQuestion = result.rows[0];
+    return new Question(updatedQuestion);
+  }
+
+  async setWinner(winning_team_id) {
+    const result = await db.query(`
+      UPDATE questions
+      SET winning_team_id = $1
+      WHERE id=$2 RETURNING *
+    `, [winning_team_id, this.id]);
+    let updatedQuestion = result.rows[0];
+    return new Question(updatedQuestion);
+  }
+
   async setToPass() {
     const result = await db.query(`
       UPDATE questions
