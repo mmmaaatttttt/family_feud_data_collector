@@ -1,8 +1,10 @@
 const { prompt, choose } = require("promptly");
-const { Answer, Episode, Guess, Person, Question, Team } = require("./models");
-
-// TODO: fix syntax error
-// TODO: finish fast money helper
+const Answer = require("./Answer");
+const Episode = require("./Episode");
+const Guess = require("./Guess");
+const Person = require("./Person");
+const Question = require("./Question");
+const Team = require("./Team");
 
 class EpisodeRecording {
   constructor() {
