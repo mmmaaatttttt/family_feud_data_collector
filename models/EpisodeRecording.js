@@ -184,7 +184,7 @@ class EpisodeRecording {
 
     let guessData = {
       question_id: this.currentQuestion.id,
-      text: await prompt(textMsg),
+      text: await prompt(textMsg, { default: "" }),
       order: this.guessOrder,
       person_id
     };
@@ -330,7 +330,8 @@ class EpisodeRecording {
       let guessData = {
         question_id: this.currentQuestion.id,
         text: await prompt(
-          `What did ${firstPerson.name} guess for this fast money question?`
+          `What did ${firstPerson.name} guess for this fast money question?`,
+          { default: "" }
         ),
         order: 1,
         person_id: firstPerson.id
