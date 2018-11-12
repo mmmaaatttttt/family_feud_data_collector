@@ -53,4 +53,6 @@ class Episode {
   }
 }
 
+Episode.NUM_FAST_MONEY_QUESTIONS = 5;
+
 module.exports = Episode;
