@@ -62,8 +62,8 @@ class EpisodeRecording {
       episode_number,
       season,
       air_date,
-      first_team_id: this.teams.left.id,
-      second_team_id: this.teams.right.id
+      left_team_id: this.teams.left.id,
+      right_team_id: this.teams.right.id
     });
 
     this.episode = episode;
@@ -72,7 +72,9 @@ class EpisodeRecording {
   async setCurrentQuestion(isFastMoney = false) {
     let questionData = {
       episode_id: this.episode.id,
-      text: await prompt(`What is the text of question #${questionOrder}?`),
+      text: await prompt(
+        `What is the text of question #${this.questionOrder}?`
+      ),
       order: this.questionOrder,
       round_type: isFastMoney
         ? "fast_money"
@@ -94,7 +96,7 @@ class EpisodeRecording {
       "right"
     ]);
 
-    this.currentTeam = teams[direction];
+    this.currentTeam = this.teams[direction];
     let teamDecided = false;
 
     do {
@@ -128,12 +130,14 @@ class EpisodeRecording {
         // 4. You're the second person to guess, but your answer is lower than
         //    the first person's guess
         let isWorseAnswer = answersSoFar.length === 2 && !isBetterAnswer;
-
         if (isBestAnswer || isOnlyAnswer || isBetterAnswer || isWorseAnswer) {
           teamDecided = true;
           if (isWorseAnswer) this.toggleCurrentTeam();
         }
-      } else {
+      }
+
+      // toggle team if it hasn't been decided yet
+      if (!teamDecided) {
         this.toggleCurrentTeam();
         this.guessOrder++;
       }
@@ -163,10 +167,7 @@ class EpisodeRecording {
     let stealAttempt = teamOrder === null;
 
     if (!currentPerson && !stealAttempt) {
-      currentPerson = await this.logNewPerson(
-        this.teamOrder,
-        this.currentTeam.id
-      );
+      currentPerson = await this.logNewPerson(this.teamOrder, this.currentTeam);
     }
 
     // messaging is different for a steal attempt
@@ -176,7 +177,9 @@ class EpisodeRecording {
     if (currentPerson) {
       // this runs precisely when we're not in a steal attempt
       person_id = currentPerson.id;
-      textMsg = `What was ${currentPerson.first_name}'s guess?`;
+      textMsg = `What was ${
+        currentPerson.first_name
+      }'s guess? Hit enter if they didn't guess anything`;
     }
 
     let guessData = {
@@ -207,7 +210,7 @@ class EpisodeRecording {
     // and while the team hasn't found all of the answers
     do {
       this.guessOrder++;
-      this.teamOrder = (this.teamOrder % CONTESTANTS_PER_TEAM) + 1;
+      this.teamOrder = (this.teamOrder % TEAM.NUM_CONTESTANTS) + 1;
 
       let { answer } = await logGuessAndAnswer(teamOrder);
 
@@ -259,7 +262,7 @@ class EpisodeRecording {
         text: answerText,
         points: +(await prompt("How many points was this answer worth?")),
         order: +(await prompt("What's this answer's ranking?", {
-          default: null
+          default: ""
         }))
       };
       answer = await Answer.create(answerData);
@@ -277,9 +280,15 @@ class EpisodeRecording {
     }
   }
 
-  async logNewPerson(order, team_id) {
-    let first_name = await prompt("What is the guesser's name?");
-    let newPerson = await Person.create({ first_name, order, team_id });
+  async logNewPerson(order, team) {
+    let first_name = await prompt(
+      `What is the name of person #${order} in the ${team.name} family?`
+    );
+    let newPerson = await Person.create({
+      first_name,
+      order,
+      team_id: team.id
+    });
     return newPerson;
   }
 
@@ -289,7 +298,7 @@ class EpisodeRecording {
     orders.forEach(async function(order) {
       let person = people.find(p => p.order === order);
       if (!person) {
-        await this.logNewPerson(order, team.id);
+        await this.logNewPerson(order, team);
       }
     });
   }
@@ -356,7 +365,6 @@ class EpisodeRecording {
 
     // get first person's guesses
     for (var i = 0; i < Episode.NUM_FAST_MONEY_QUESTIONS; i++) {
-
       let guessData = {
         question_id: questions[i].id,
         text: await prompt(
