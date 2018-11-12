@@ -1,0 +1,392 @@
+const { prompt, choose } = require("promptly");
+const { Answer, Episode, Guess, Person, Question, Team } = require("./models");
+
+// TODO: fix syntax error
+// TODO: finish fast money helper
+
+class EpisodeRecording {
+  constructor() {
+    this.teams = { left: null, right: null };
+    this.episode = null;
+    this.currentQuestion = null;
+    this.currentTeam = null;
+    this.questionOrder = 1;
+    this.guessOrder = 1;
+    this.teamOrder = 1;
+  }
+
+  async logNewEpisode() {
+    await this.setEpisodeAndTeams();
+
+    console.log("\n\nLet's play the feud!\n\n");
+
+    // handle main game (competition between two teams)
+    do {
+      let numAnswers = +(await prompt("How many answers are on the board?"));
+
+      await this.setCurrentQuestion();
+      await this.determineBuzzerWinner();
+
+      console.log(`The ${this.currentTeam.name} family is ready to guess!`);
+
+      await this.logGuessesAndStrikes(numAnswers);
+    } while (await this.episode.hasNoWinner());
+
+    // in the event that not everone guessed during the episode,
+    // be sure to record their information too
+    await this.logRemainingPeople(this.teams.left);
+    await this.logRemainingPeople(this.teams.right);
+
+    let winningTeam = (await this.teams.left.isWinner(this.episode.id))
+      ? this.teams.left
+      : this.teams.right;
+
+    // handle fast money
+    await this.logFastMoney(winningTeam);
+  }
+
+  async setEpisodeAndTeams() {
+    let name1 = await prompt("What is the name of the left team?");
+    this.teams.left = await Team.findOrCreate(name1);
+
+    let name2 = await prompt("What is the name of the right team?");
+    this.teams.right = await Team.findOrCreate(name2);
+
+    let episode_number = +(await prompt("What's the episode number?"));
+    let season = +(await prompt("What season is the episode in?"));
+    let air_date = await prompt("When did the episode air?");
+
+    let episode = await Episode.create({
+      episode_number,
+      season,
+      air_date,
+      first_team_id: this.teams.left.id,
+      second_team_id: this.teams.right.id
+    });
+
+    this.episode = episode;
+  }
+
+  async setCurrentQuestion(isFastMoney = false) {
+    let questionData = {
+      episode_id: this.episode.id,
+      text: await prompt(`What is the text of question #${questionOrder}?`),
+      order: this.questionOrder,
+      round_type: isFastMoney
+        ? "fast_money"
+        : await choose(
+            `How are point values determined? single, double, or triple?`,
+            ["single", "double", "triple"]
+          ),
+      team_decides_to_play: !isFastMoney || null
+    };
+
+    let question = await Question.create(questionData);
+
+    this.currentQuestion = question;
+  }
+
+  async determineBuzzerWinner() {
+    let direction = await choose("Which team buzzed in first, left or right?", [
+      "left",
+      "right"
+    ]);
+
+    this.currentTeam = teams[direction];
+    let teamDecided = false;
+
+    do {
+      // during the buzzer portion of the game,
+      // guesses alternate between teams, so we should only increment who's next
+      // after every OTHER guess
+      let nextInLine =
+        this.questionOrder - 1 + Math.floor((this.guessOrder - 1) / 2);
+
+      // loop to the front of the line and handle off-by-1
+      this.teamOrder = (nextInLine % Team.NUM_CONTESTANTS) + 1;
+
+      let { answer } = await this.logGuessAndAnswer(this.teamOrder);
+
+      if (answer) {
+        let answersSoFar = await this.currentQuestion.answers();
+        let orders = answersSoFar.map(a => a.order);
+
+        // there are four ways for the buzzer section to end:
+        // 1. You guessed the #1 answer
+        let isBestAnswer = answer.order === 1;
+
+        // 2. You're not the first person to guess, and you guess an answer
+        let isOnlyAnswer = this.guessOrder > 1 && answersSoFar.length === 1;
+
+        // 3. You're the second person to guess, and your answer is higher than
+        //    the first person's guess
+        let isBetterAnswer =
+          answersSoFar.length === 2 && answer.order === Math.min(...orders);
+
+        // 4. You're the second person to guess, but your answer is lower than
+        //    the first person's guess
+        let isWorseAnswer = answersSoFar.length === 2 && !isBetterAnswer;
+
+        if (isBestAnswer || isOnlyAnswer || isBetterAnswer || isWorseAnswer) {
+          teamDecided = true;
+          if (isWorseAnswer) this.toggleCurrentTeam();
+        }
+      } else {
+        this.toggleCurrentTeam();
+        this.guessOrder++;
+      }
+    } while (!teamDecided);
+
+    await this.currentQuestion.setBuzzerWinner(this.currentTeam.id);
+
+    let decidedToPass = await choose(
+      `Did the ${
+        this.currentTeam.name
+      } family decide to pass? Enter 'y' for yes, just hit enter for no.`,
+      ["y", ""],
+      { default: "" }
+    );
+
+    if (decidedToPass) {
+      await this.currentQuestion.setToPass();
+      this.toggleCurrentTeam();
+    }
+  }
+
+  async logGuessAndAnswer(teamOrder = null) {
+    let teamMembers = await this.currentTeam.people();
+    let currentPerson = teamMembers[teamOrder - 1];
+
+    // guesses for steal attempts aren't associated with any one person on the team
+    let stealAttempt = teamOrder === null;
+
+    if (!currentPerson && !stealAttempt) {
+      currentPerson = await this.logNewPerson(
+        this.teamOrder,
+        this.currentTeam.id
+      );
+    }
+
+    // messaging is different for a steal attempt
+    let person_id = null;
+    let textMsg = "What did they guess to try to steal?";
+
+    if (currentPerson) {
+      // this runs precisely when we're not in a steal attempt
+      person_id = currentPerson.id;
+      textMsg = `What was ${currentPerson.first_name}'s guess?`;
+    }
+
+    let guessData = {
+      question_id: this.currentQuestion.id,
+      text: await prompt(textMsg),
+      order: this.guessOrder,
+      person_id
+    };
+
+    let answer = await this.logAnswer(
+      "Enter the answer text, or hit enter for a strike.",
+      this.currentQuestion.id
+    );
+
+    if (answer) {
+      guessData.matching_answer_id = answer.id;
+    }
+
+    let guess = await Guess.create(guessData);
+
+    return { guess, answer };
+  }
+
+  async logGuessesAndStrikes(numAnswers) {
+    let numStrikes = 0;
+
+    // loop while there are fewer than three strikes
+    // and while the team hasn't found all of the answers
+    do {
+      this.guessOrder++;
+      this.teamOrder = (this.teamOrder % CONTESTANTS_PER_TEAM) + 1;
+
+      let { answer } = await logGuessAndAnswer(teamOrder);
+
+      if (!answer) {
+        numStrikes++;
+        console.log(`Strike #${numStrikes}!`);
+      }
+
+      var foundAnswers = await this.currentQuestion.answers();
+    } while (numStrikes < 3 && foundAnswers.length < numAnswers);
+
+    await this.handleRoundEnd(foundAnswers, numAnswers, numStrikes);
+  }
+
+  async handleRoundEnd(foundAnswers, numAnswers, numStrikes) {
+    // if the round ends because there are no more answers,
+    // the current team wins!
+    if (foundAnswers.length === numAnswers) {
+      this.currentQuestion.setWinner(this.currentTeam.id);
+    }
+
+    // if there are thee strikes, the other team has an opportunity to steal!
+    if (numStrikes === 3) {
+      this.guessOrder++;
+      this.toggleCurrentTeam();
+      console.log(
+        `The ${this.currentTeam.name} family now has an opportunity to steal!`
+      );
+      let { answer } = await logGuessAndAnswer();
+
+      // if steal attempt failed, the other team should win the round
+      if (!answer) this.toggleCurrentTeam();
+
+      this.currentQuestion.setWinner(this.currentTeam.id);
+    }
+
+    // set orders for next round
+    this.questionOrder++;
+    this.guessOrder = 1;
+  }
+
+  async logAnswer(msg, question_id) {
+    let answer = null;
+    let answerText = await prompt(msg, { default: "" });
+
+    if (answerText) {
+      let answerData = {
+        question_id,
+        text: answerText,
+        points: +(await prompt("How many points was this answer worth?")),
+        order: +(await prompt("What's this answer's ranking?", {
+          default: null
+        }))
+      };
+      answer = await Answer.create(answerData);
+    }
+
+    return answer;
+  }
+
+  async logAnswersThatWerentGuessed(numAnswers) {
+    while ((await this.currentQuestion.answers()).length < numAnswers) {
+      await this.logAnswer(
+        "Please record the next answer that nobody guessed.",
+        this.currentQuestion.id
+      );
+    }
+  }
+
+  async logNewPerson(order, team_id) {
+    let first_name = await prompt("What is the guesser's name?");
+    let newPerson = await Person.create({ first_name, order, team_id });
+    return newPerson;
+  }
+
+  async logRemainingPeople(team) {
+    let people = await team.people();
+    let orders = Array.from({ length: Team.NUM_CONTESTANTS }, (_, i) => i + 1);
+    orders.forEach(async function(order) {
+      let person = people.find(p => p.order === order);
+      if (!person) {
+        await this.logNewPerson(order, team.id);
+      }
+    });
+  }
+
+  async logFastMoney(team) {
+    let people = await team.people();
+    let peopleStr = people
+      .map(p => `Order #${p.order}: ${p.first_name}`)
+      .join("\n");
+    let firstPersonOrder = await choose(
+      `Who went first in fast money? Please enter their order. \n ${peopleStr}`,
+      people.map(p => p.order).map(o => "" + o)
+    );
+
+    let firstPersonIdx = people.findIndex(p => p.order === +firstPersonOrder);
+    let firstPerson = people[firstPersonIdx];
+    people.splice(firstPerson, 1);
+    let guesses = [];
+    let questions = [];
+    this.questionOrder = 1;
+
+    // get first person's guesses
+    for (var i = 0; i < Episode.NUM_FAST_MONEY_QUESTIONS; i++) {
+      // get current fast money question
+      await this.setCurrentQuestion();
+      this.questionOrder++;
+      questions.push(this.currentQuestion);
+
+      let guessData = {
+        question_id: this.currentQuestion.id,
+        text: await prompt(
+          `What did ${firstPerson.name} guess for this fast money question?`
+        ),
+        order: 1,
+        person_id: firstPerson.id
+      };
+
+      guesses.push(guessData);
+    }
+
+    // get first person's answers
+    for (let guess of guesses) {
+      // TODO: deal with passing
+      let answer = await this.logAnswer(
+        "Enter the fast money answer (hit enter for no answer)",
+        guess.question_id
+      );
+
+      if (answer) guess.matching_answer_id = answer.id;
+
+      await Guess.create(guess);
+    }
+
+    peopleStr = people
+      .map(p => `Order #${p.order}: ${p.first_name}`)
+      .join("\n");
+    let secondPersonOrder = await choose(
+      `Who went second in fast money? Please enter their order. \n ${peopleStr}`,
+      people.map(p => p.order).map(o => "" + o)
+    );
+
+    let secondPerson = people.find(p => p.order === +secondPersonOrder);
+    guesses = [];
+
+    // get first person's guesses
+    for (var i = 0; i < Episode.NUM_FAST_MONEY_QUESTIONS; i++) {
+
+      let guessData = {
+        question_id: questions[i].id,
+        text: await prompt(
+          `What did ${secondPerson.name} guess for this fast money question?`
+        ),
+        order: 2,
+        person_id: secondPerson.id
+      };
+
+      guesses.push(guessData);
+    }
+
+    // get first person's answers
+    for (let guess of guesses) {
+      // TODO: deal with passing
+      let answer = await this.logAnswer(
+        "Enter the fast money answer (hit enter for no answer)",
+        guess.question_id
+      );
+
+      if (answer) guess.matching_answer_id = answer.id;
+
+      await Guess.create(guess);
+    }
+
+    // TODO: Show final score, and whether or not the family won!
+  }
+
+  toggleCurrentTeam() {
+    let leftIsCurrent = this.currentTeam === this.teams.left;
+    this.currentTeam = leftIsCurrent ? this.teams.right : this.teams.left;
+  }
+}
+
+module.exports = EpisodeRecording;
