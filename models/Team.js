@@ -104,11 +104,11 @@ class Team {
       GROUP BY winning_team_id
       HAVING q.winning_team_id = $2
     `, [episode_id, this.id]);
-    return +results.rows[0].points;
+    return results.length ? +results.rows[0].points : 0;
   }
 
   async isWinner(episode_id) {
-    return (await this.points(episode_id)) < 300;
+    return (await this.points(episode_id)) >= 300;
   }
 }
 
