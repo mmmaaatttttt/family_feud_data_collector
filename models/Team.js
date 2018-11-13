@@ -16,9 +16,7 @@ class Team {
   static async create(name, city, state) {
     const result = await db.query(`
       INSERT INTO teams (name, city, state) VALUES ($1, $2, $3) RETURNING *
-    `,
-      [name, city, state]
-    );
+    `, [name, city, state]);
     let newUser = result.rows[0];
     return new Team(newUser);
   }
@@ -26,9 +24,7 @@ class Team {
   static async find(id) {
     const result = await db.query(`
       SELECT * FROM teams WHERE id = $1
-    `,
-      [id]
-    );
+    `, [id]);
     let team = result.rows[0];
     return new Team(team);
   }
@@ -92,19 +88,26 @@ class Team {
 
   async points(episode_id) {
     const results = await db.query(`
-      SELECT q.winning_team_id, SUM(a.points) AS points
+      SELECT q.winning_team_id, SUM(
+        CASE WHEN q.round_type = 'single' THEN a.points
+             WHEN q.round_type = 'double' THEN 2 * a.points
+             WHEN q.round_type = 'triple' THEN 3 * a.points
+        END
+      ) AS points
       FROM guesses g
       LEFT JOIN answers a
       ON a.id = g.matching_answer_id
       LEFT JOIN questions q
       ON g.question_id = q.id
       WHERE g.person_id IS NOT NULL
-      AND q.episode_id = $1
+      AND q.episode_id = 1
       AND q.round_type != 'fast_money'
       GROUP BY winning_team_id
-      HAVING q.winning_team_id = $2
-    `, [episode_id, this.id]);
-    return results.length ? +results.rows[0].points : 0;
+      HAVING q.winning_team_id = 1
+    `,
+      [episode_id, this.id]
+    );
+    return results.rows.length > 0 ? +results.rows[0].points : 0;
   }
 
   async isWinner(episode_id) {
