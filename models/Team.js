@@ -1,4 +1,4 @@
-const { choose } = require("promptly");
+const { prompt, choose } = require("promptly");
 const moment = require("moment");
 const groupBy = require("lodash/groupBy");
 const size = require("lodash/size");
@@ -6,15 +6,19 @@ const db = require("../db");
 const Person = require("./Person");
 
 class Team {
-  constructor({id, name}) {
+  constructor({ id, name, city, state }) {
     this.id = id;
     this.name = name;
+    this.city = city;
+    this.state = state;
   }
 
-  static async create(name) {
+  static async create(name, city, state) {
     const result = await db.query(`
-      INSERT INTO teams (name) VALUES ($1) RETURNING *
-    `, [name]);
+      INSERT INTO teams (name, city, state) VALUES ($1, $2, $3) RETURNING *
+    `,
+      [name, city, state]
+    );
     let newUser = result.rows[0];
     return new Team(newUser);
   }
@@ -22,9 +26,11 @@ class Team {
   static async find(id) {
     const result = await db.query(`
       SELECT * FROM teams WHERE id = $1
-    `, [id]);
-    let user = result.rows[0];
-    return new Team(user);
+    `,
+      [id]
+    );
+    let team = result.rows[0];
+    return new Team(team);
   }
 
   static async findOrCreate(name) {
@@ -33,19 +39,24 @@ class Team {
     if (size(results) > 0) {
       let choiceMsg = `Teams named ${name} already exist. Is one of these teams the one you're referring to?\n`;
       for (let id in results) {
-        let formattedDates = results[id].map(r => (
-          moment(r.air_date).format("MM/DD/YYYY")
-        )).join(", ")
-        choiceMsg += `${id}. Episodes: ${formattedDates}\n`
+        let formattedDates = results[id]
+          .map(r => moment(r.air_date).format("MM/DD/YYYY"))
+          .join(", ");
+        choiceMsg += `${id}. Episodes: ${formattedDates}\n`;
       }
-      choiceMsg += "Enter the team's id if you've found it here.\nOtherwise just hit enter, and I'll create a new team for you."
-      choice = await choose(choiceMsg, Object.keys(results).concat(""), { default: "" });
+      choiceMsg +=
+        "Enter the team's id if you've found it here.\nOtherwise just hit enter, and I'll create a new team for you.";
+      choice = await choose(choiceMsg, Object.keys(results).concat(""), {
+        default: ""
+      });
     }
     if (choice) {
       return await Team.find(+choice);
     }
-    console.log("Okay, I'll create a new team for you.")
-    return await Team.create(name);
+    console.log("Okay, I'll create a new team for you.");
+    let city = await prompt(`What city is the ${name} family from?`);
+    let state = await prompt(`What state is the ${name} family from?`);
+    return await Team.create(name, city, state);
   }
 
   static async previousTeams(name) {
@@ -62,7 +73,9 @@ class Team {
       ON e.right_team_id = t2.id
       WHERE t1.name = $1
       OR t2.name = $1
-    `, [name]);
+    `,
+      [name]
+    );
     return groupBy(results.rows, "team_id");
   }
 
@@ -71,7 +84,9 @@ class Team {
       SELECT * FROM people
       WHERE team_id = $1
       ORDER BY "order" ASC
-    `, [this.id]);
+    `,
+      [this.id]
+    );
     return results.rows.map(row => new Person(row));
   }
 
@@ -89,7 +104,7 @@ class Team {
       GROUP BY winning_team_id
       HAVING q.winning_team_id = $2
     `, [episode_id, this.id]);
-    return results[0].points;
+    return +results.rows[0].points;
   }
 
   async isWinner(episode_id) {

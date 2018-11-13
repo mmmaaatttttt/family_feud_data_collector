@@ -24,7 +24,9 @@ class EpisodeRecording {
 
     // handle main game (competition between two teams)
     do {
-      let numAnswers = +(await prompt("How many answers are on the board?"));
+      let numAnswers = +(await prompt(
+        `Question #${this.questionOrder}: How many answers are on the board?`
+      ));
 
       await this.setCurrentQuestion();
       await this.determineBuzzerWinner();
@@ -145,15 +147,15 @@ class EpisodeRecording {
 
     await this.currentQuestion.setBuzzerWinner(this.currentTeam.id);
 
-    let decidedToPass = await choose(
+    let decidedToPlay = await choose(
       `Did the ${
         this.currentTeam.name
-      } family decide to pass? Enter 'y' for yes, just hit enter for no.`,
-      ["y", ""],
+      } family decide to play? Hit enter for yes, type 'n' for no.`,
+      ["", "n"],
       { default: "" }
     );
 
-    if (decidedToPass) {
+    if (decidedToPlay) {
       await this.currentQuestion.setToPass();
       this.toggleCurrentTeam();
     }
@@ -161,7 +163,7 @@ class EpisodeRecording {
 
   async logGuessAndAnswer(teamOrder = null) {
     let teamMembers = await this.currentTeam.people();
-    let currentPerson = teamMembers[teamOrder - 1];
+    let currentPerson = teamMembers.find(p => p.order === teamOrder);
 
     // guesses for steal attempts aren't associated with any one person on the team
     let stealAttempt = teamOrder === null;
@@ -179,7 +181,7 @@ class EpisodeRecording {
       person_id = currentPerson.id;
       textMsg = `What was ${
         currentPerson.first_name
-      }'s guess? Hit enter if they didn't guess anything`;
+      }'s guess? Hit enter if they didn't guess anything.`;
     }
 
     let guessData = {
@@ -205,21 +207,22 @@ class EpisodeRecording {
 
   async logGuessesAndStrikes(numAnswers) {
     let numStrikes = 0;
+    let foundAnswers = [];
 
     // loop while there are fewer than three strikes
     // and while the team hasn't found all of the answers
     do {
       this.guessOrder++;
-      this.teamOrder = (this.teamOrder % TEAM.NUM_CONTESTANTS) + 1;
+      this.teamOrder = (this.teamOrder % Team.NUM_CONTESTANTS) + 1;
 
-      let { answer } = await logGuessAndAnswer(teamOrder);
+      let { answer } = await this.logGuessAndAnswer(this.teamOrder);
 
       if (!answer) {
         numStrikes++;
         console.log(`Strike #${numStrikes}!`);
       }
 
-      var foundAnswers = await this.currentQuestion.answers();
+      foundAnswers = await this.currentQuestion.answers();
     } while (numStrikes < 3 && foundAnswers.length < numAnswers);
 
     await this.handleRoundEnd(foundAnswers, numAnswers, numStrikes);
@@ -239,7 +242,8 @@ class EpisodeRecording {
       console.log(
         `The ${this.currentTeam.name} family now has an opportunity to steal!`
       );
-      let { answer } = await logGuessAndAnswer();
+
+      let { answer } = await this.logGuessAndAnswer();
 
       // if steal attempt failed, the other team should win the round
       if (!answer) this.toggleCurrentTeam();
