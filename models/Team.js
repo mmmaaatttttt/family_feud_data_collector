@@ -100,10 +100,10 @@ class Team {
       LEFT JOIN questions q
       ON g.question_id = q.id
       WHERE g.person_id IS NOT NULL
-      AND q.episode_id = 1
+      AND q.episode_id = $1
       AND q.round_type != 'fast_money'
       GROUP BY winning_team_id
-      HAVING q.winning_team_id = 1
+      HAVING q.winning_team_id = $2
     `,
       [episode_id, this.id]
     );
