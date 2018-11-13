@@ -239,7 +239,7 @@ class EpisodeRecording {
     // if the round ends because there are no more answers,
     // the current team wins!
     if (foundAnswers.length === numAnswers) {
-      this.currentQuestion.setWinner(this.currentTeam.id);
+      await this.currentQuestion.setWinner(this.currentTeam.id);
     }
 
     // if there are thee strikes, the other team has an opportunity to steal!
@@ -255,7 +255,8 @@ class EpisodeRecording {
       // if steal attempt failed, the other team should win the round
       if (!answer) this.toggleCurrentTeam();
 
-      this.currentQuestion.setWinner(this.currentTeam.id);
+      await this.currentQuestion.setWinner(this.currentTeam.id);
+      await this.logAnswersThatWerentGuessed(numAnswers);
     }
 
     // set orders for next round
