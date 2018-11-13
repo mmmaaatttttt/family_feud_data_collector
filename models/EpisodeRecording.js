@@ -24,6 +24,13 @@ class EpisodeRecording {
 
     // handle main game (competition between two teams)
     do {
+      let dirs = ["left", "right"];
+      for (let dir of dirs) {
+        let name = this.teams[dir].name;
+        let points = await this.teams[dir].points(this.episode.id);
+        console.log(`${name} Family: ${points} points.`);
+      }
+
       let numAnswers = +(await prompt(
         `Question #${this.questionOrder}: How many answers are on the board?`
       ));
@@ -299,12 +306,12 @@ class EpisodeRecording {
   async logRemainingPeople(team) {
     let people = await team.people();
     let orders = Array.from({ length: Team.NUM_CONTESTANTS }, (_, i) => i + 1);
-    orders.forEach(async function(order) {
+    for (let order of orders) {
       let person = people.find(p => p.order === order);
       if (!person) {
         await this.logNewPerson(order, team);
       }
-    });
+    }
   }
 
   async logFastMoney(team) {
@@ -327,7 +334,7 @@ class EpisodeRecording {
     // get first person's guesses
     for (var i = 0; i < Episode.NUM_FAST_MONEY_QUESTIONS; i++) {
       // get current fast money question
-      await this.setCurrentQuestion();
+      await this.setCurrentQuestion(true);
       this.questionOrder++;
       questions.push(this.currentQuestion);
 
