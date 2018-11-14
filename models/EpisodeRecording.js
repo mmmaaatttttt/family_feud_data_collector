@@ -6,6 +6,8 @@ const Person = require("./Person");
 const Question = require("./Question");
 const Team = require("./Team");
 
+// todo: winner is first to 300 or winner after 4 questions?
+
 class EpisodeRecording {
   constructor() {
     this.teams = { left: null, right: null };
@@ -18,6 +20,7 @@ class EpisodeRecording {
   }
 
   async logNewEpisode() {
+    let winningTeam = null;
     await this.setEpisodeAndTeams();
 
     console.log("\n\nLet's play the feud!\n\n");
@@ -41,16 +44,13 @@ class EpisodeRecording {
       console.log(`The ${this.currentTeam.name} family is ready to guess!`);
 
       await this.logGuessesAndStrikes(numAnswers);
-    } while (await this.episode.hasNoWinner());
+      winningTeam = await this.episode.getWinner();
+    } while (!winningTeam);
 
     // in the event that not everone guessed during the episode,
     // be sure to record their information too
     await this.logRemainingPeople(this.teams.left);
     await this.logRemainingPeople(this.teams.right);
-
-    let winningTeam = (await this.teams.left.isWinner(this.episode.id))
-      ? this.teams.left
-      : this.teams.right;
 
     // handle fast money
     await this.logFastMoney(winningTeam);
@@ -264,7 +264,7 @@ class EpisodeRecording {
     this.guessOrder = 1;
   }
 
-  async logAnswer(msg, question_id) {
+  async logAnswer(msg, question_id, isFastMoney = false) {
     let answer = null;
     let answerText = await prompt(msg, { default: "" });
 
@@ -273,9 +273,7 @@ class EpisodeRecording {
         question_id,
         text: answerText,
         points: +(await prompt("How many points was this answer worth?")),
-        order: +(await prompt("What's this answer's ranking?", {
-          default: ""
-        }))
+        order: isFastMoney ? null : +(await prompt("What's this answer's ranking?"))
       };
       answer = await Answer.create(answerData);
     }
@@ -321,7 +319,7 @@ class EpisodeRecording {
       .map(p => `Order #${p.order}: ${p.first_name}`)
       .join("\n");
     let firstPersonOrder = await choose(
-      `Who went first in fast money? Please enter their order. \n ${peopleStr}`,
+      `Who went first in fast money? Please enter their order. \n${peopleStr}\n`,
       people.map(p => p.order).map(o => "" + o)
     );
 
@@ -342,7 +340,7 @@ class EpisodeRecording {
       let guessData = {
         question_id: this.currentQuestion.id,
         text: await prompt(
-          `What did ${firstPerson.name} guess for this fast money question?`,
+          `What did ${firstPerson.first_name} guess for this fast money question?`,
           { default: "" }
         ),
         order: 1,

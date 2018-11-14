@@ -80,9 +80,7 @@ class Team {
       SELECT * FROM people
       WHERE team_id = $1
       ORDER BY "order" ASC
-    `,
-      [this.id]
-    );
+    `, [this.id]);
     return results.rows.map(row => new Person(row));
   }
 
@@ -110,9 +108,6 @@ class Team {
     return results.rows.length > 0 ? +results.rows[0].points : 0;
   }
 
-  async isWinner(episode_id) {
-    return (await this.points(episode_id)) >= 300;
-  }
 }
 
 Team.NUM_CONTESTANTS = 5;
