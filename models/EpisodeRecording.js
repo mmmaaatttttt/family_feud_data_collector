@@ -355,7 +355,8 @@ class EpisodeRecording {
       // TODO: deal with passing
       let answer = await this.logAnswer(
         "Enter the fast money answer (hit enter for no answer)",
-        guess.question_id
+        guess.question_id,
+        true
       );
 
       if (answer) guess.matching_answer_id = answer.id;
@@ -379,7 +380,7 @@ class EpisodeRecording {
       let guessData = {
         question_id: questions[i].id,
         text: await prompt(
-          `What did ${secondPerson.name} guess for this fast money question?`
+          `What did ${secondPerson.first_name} guess for this fast money question?`
         ),
         order: 2,
         person_id: secondPerson.id
@@ -393,7 +394,8 @@ class EpisodeRecording {
       // TODO: deal with passing
       let answer = await this.logAnswer(
         "Enter the fast money answer (hit enter for no answer)",
-        guess.question_id
+        guess.question_id,
+        true
       );
 
       if (answer) guess.matching_answer_id = answer.id;
