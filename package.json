@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "migrate": "node-pg-migrate"
+    "migrate": "node-pg-migrate",
+    "dump": "pg_dump -U $(whoami) family_feud > family_feud.pgsql"
   },
   "keywords": [],
   "author": "",
