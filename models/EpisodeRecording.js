@@ -119,12 +119,13 @@ class EpisodeRecording {
       this.teamOrder = (nextInLine % Team.NUM_CONTESTANTS) + 1;
 
       let { answer } = await this.logGuessAndAnswer(this.teamOrder);
+      let answersSoFar = await this.currentQuestion.answers();
 
       if (answer) {
-        let answersSoFar = await this.currentQuestion.answers();
+        // if there's a matching answer
+        // there are four ways for the buzzer section to end:
         let orders = answersSoFar.map(a => a.order);
 
-        // there are four ways for the buzzer section to end:
         // 1. You guessed the #1 answer
         let isBestAnswer = answer.order === 1;
 
@@ -142,6 +143,13 @@ class EpisodeRecording {
         if (isBestAnswer || isOnlyAnswer || isBetterAnswer || isWorseAnswer) {
           teamDecided = true;
           if (isWorseAnswer) this.toggleCurrentTeam();
+        }
+      } else {
+        // if there's no match, the buzzer round can still end
+        // provided there was a previous answer
+        if (answersSoFar.length === 1) {
+          teamDecided = true;
+          this.toggleCurrentTeam();
         }
       }
 
