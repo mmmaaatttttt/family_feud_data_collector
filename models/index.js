@@ -1,6 +1,7 @@
 const Answer = require("./Answer");
 const Episode = require("./Episode");
 const Guess = require("./Guess");
+const Host = require("./Host");
 const Person = require("./Person");
 const Question = require("./Question");
 const EpisodeRecording = require("./EpisodeRecording");
@@ -11,6 +12,7 @@ module.exports = {
   Episode,
   EpisodeRecording,
   Guess,
+  Host,
   Person,
   Question,
   Team
