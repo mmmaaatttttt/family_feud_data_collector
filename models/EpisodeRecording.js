@@ -65,6 +65,7 @@ class EpisodeRecording {
 
     let episode_number = +(await prompt("What's the episode number?"));
     let season = +(await prompt("What season is the episode in?"));
+    await season.findOrCreate(season);
     let air_date = await prompt("When did the episode air?");
 
     let episode = await Episode.create({
