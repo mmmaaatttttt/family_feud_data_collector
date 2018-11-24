@@ -14,6 +14,15 @@ class Host {
     let newHost = result.rows[0];
     return new Host(newHost);
   }
+
+  static async findAll() {
+    const result = await db.query(`SELECT * FROM hosts`);
+    return result.rows.map(row => new Host(row));
+  }
+
+  get fullName() {
+    return `${this.first_name} ${this.last_name}`;
+  }
 }
 
 module.exports = Host;
