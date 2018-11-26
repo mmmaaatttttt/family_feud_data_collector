@@ -3,6 +3,7 @@ const Answer = require("./Answer");
 const Episode = require("./Episode");
 const Guess = require("./Guess");
 const Person = require("./Person");
+const Season = require("./Season");
 const Question = require("./Question");
 const Team = require("./Team");
 
@@ -65,7 +66,7 @@ class EpisodeRecording {
 
     let episode_number = +(await prompt("What's the episode number?"));
     let season = +(await prompt("What season is the episode in?"));
-    await season.findOrCreate(season);
+    await Season.findOrCreate(season);
     let air_date = await prompt("When did the episode air?");
 
     let episode = await Episode.create({
