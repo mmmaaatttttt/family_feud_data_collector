@@ -67,13 +67,14 @@ class Episode {
     for (let i = 0; i < teams.length; i++) {
       // one way to win: get > 300 points
       let enoughPointsToWin = points[i] > Episode.POINTS_TO_WIN;
+      if (enoughPointsToWin) return teams[i];
 
       // another way to win: get enough points after 4 questions,
       // at which point play proceeds to fast money (maybe?)
-      let morePointsAfterEnoughQuestions =
-        questions.length >= 4 && points[i] === Math.max(...points);
+      // let morePointsAfterEnoughQuestions =
+      //   questions.length >= 4 && points[i] === Math.max(...points);
 
-      if (enoughPointsToWin || morePointsAfterEnoughQuestions) return teams[i];
+      // if (enoughPointsToWin || morePointsAfterEnoughQuestions) return teams[i];
     }
     return null;
   }
