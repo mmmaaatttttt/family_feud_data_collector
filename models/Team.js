@@ -50,8 +50,8 @@ class Team {
       return await Team.find(+choice);
     }
     console.log("Okay, I'll create a new team for you.");
-    let city = await prompt(`What city is the ${name} family from?`);
-    let state = await prompt(`What state is the ${name} family from?`);
+    let city = await prompt(`What city is the ${name} family from?`, { default: "" });
+    let state = await prompt(`What state is the ${name} family from?`, { default: "" });
     return await Team.create(name, city, state);
   }
 
