@@ -26,7 +26,7 @@ class Season {
     hosts.forEach(host => {
       hostSelectMessage += `${host.id}: ${host.fullName}\n`;
     });
-    hostSelectMessage += "Enter the team's id if you've found id here.\nOtherwise, hit enter and I'll ask you about the new host."
+    hostSelectMessage += "Enter the host's id if you've found id here.\nOtherwise, hit enter and I'll ask you about the new host."
     let host_id = +(await choose(hostSelectMessage, hosts.map(h => h.id).concat(""), {
       default: ""
     }));
