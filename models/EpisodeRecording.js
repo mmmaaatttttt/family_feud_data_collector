@@ -335,7 +335,7 @@ class EpisodeRecording {
 
     let firstPersonIdx = people.findIndex(p => p.order === +firstPersonOrder);
     let firstPerson = people[firstPersonIdx];
-    people.splice(firstPerson, 1);
+    people.splice(firstPersonIdx, 1);
     let guesses = [];
     let questions = [];
     this.questionOrder = 1;
