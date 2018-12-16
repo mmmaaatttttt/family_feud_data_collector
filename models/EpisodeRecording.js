@@ -122,6 +122,8 @@ class EpisodeRecording {
 
       let { answer } = await this.logGuessAndAnswer(this.teamOrder);
       let answersSoFar = await this.currentQuestion.answers();
+      let guessesSoFar = await this.currentQuestion.guesses();
+      let guessCameFromTeamThatDidntBuzz = guessesSoFar.length % 2 === 0;
 
       if (answer) {
         // if there's a matching answer
@@ -131,25 +133,27 @@ class EpisodeRecording {
         // 1. You guessed the #1 answer
         let isBestAnswer = answer.order === 1;
 
-        // 2. You're not the first person to guess, and you guess an answer
-        let isOnlyAnswer = this.guessOrder > 1 && answersSoFar.length === 1;
+        // 2. You're not the first person to guess, you guess an answer,
+        // and you were on the second team to guess
+        let isOnlyAnswer = guessCameFromTeamThatDidntBuzz && answersSoFar.length === 1;
 
-        // 3. You're the second person to guess, and your answer is higher than
-        //    the first person's guess
+        // 3. You're on the team that didn't buzz in, but your answer is better
+        // than the other team's guess
         let isBetterAnswer =
-          answersSoFar.length === 2 && answer.order === Math.min(...orders);
+          guessCameFromTeamThatDidntBuzz && answer.order === Math.min(...orders);
 
-        // 4. You're the second person to guess, but your answer is lower than
-        //    the first person's guess
-        let isWorseAnswer = answersSoFar.length === 2 && !isBetterAnswer;
+        // 4. You're on the team that didn't buzz in,
+        //  but your answer is lower than the other team's guess
+        let isWorseAnswer = guessesSoFar.length === 2 && !isBetterAnswer;
         if (isBestAnswer || isOnlyAnswer || isBetterAnswer || isWorseAnswer) {
           teamDecided = true;
           if (isWorseAnswer) this.toggleCurrentTeam();
         }
       } else {
-        // if there's no match, the buzzer round can still end
+        // if there's no answer, the buzzer round can still end
         // provided there was a previous answer
-        if (answersSoFar.length === 1) {
+        // and the team that guessed isn't the team that buzzed in 
+        if (answersSoFar.length === 1 && guessCameFromTeamThatDidntBuzz) {
           teamDecided = true;
           this.toggleCurrentTeam();
         }

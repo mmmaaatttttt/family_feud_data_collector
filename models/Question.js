@@ -1,5 +1,6 @@
 const db = require("../db");
 const Answer = require("./Answer");
+const Guess = require("./Guess");
 
 class Question {
   constructor(obj) {
@@ -39,6 +40,15 @@ class Question {
       ORDER BY "order" ASC
     `, [this.id]);
     return results.rows.map(row => new Answer(row));
+  }
+
+  async guesses() {
+    const results = await db.query(`
+      SELECT * FROM guesses
+      WHERE question_id = $1
+      ORDER BY "order" ASC
+    `, [this.id]);
+    return results.rows.map(row => new Guess(row));
   }
 
   async setBuzzerWinner(deciding_team_id) {
