@@ -361,18 +361,7 @@ class EpisodeRecording {
     }
 
     // get first person's answers
-    for (let guess of guesses) {
-      // TODO: deal with passing
-      let answer = await this.logAnswer(
-        "Enter the fast money answer (hit enter for no answer)",
-        guess.question_id,
-        true
-      );
-
-      if (answer) guess.matching_answer_id = answer.id;
-
-      await Guess.create(guess);
-    }
+    await this.logFastMoneyAnswers(guesses);
 
     peopleStr = people
       .map(p => `Order #${p.order}: ${p.first_name}`)
@@ -385,12 +374,13 @@ class EpisodeRecording {
     let secondPerson = people.find(p => p.order === +secondPersonOrder);
     guesses = [];
 
-    // get first person's guesses
+    // get second person's guesses
     for (var i = 0; i < Episode.NUM_FAST_MONEY_QUESTIONS; i++) {
       let guessData = {
         question_id: questions[i].id,
         text: await prompt(
-          `What did ${secondPerson.first_name} guess for this fast money question?`
+          `What did ${secondPerson.first_name} guess for this fast money question?`,
+          { default: ""}
         ),
         order: 2,
         person_id: secondPerson.id
@@ -399,11 +389,18 @@ class EpisodeRecording {
       guesses.push(guessData);
     }
 
-    // get first person's answers
-    for (let guess of guesses) {
+    // get second person's answers
+    await this.logFastMoneyAnswers(guesses);
+
+    // TODO: Show final score, and whether or not the family won!
+  }
+
+  async logFastMoneyAnswers(guesses) {
+    for (let guessIdx in guesses) {
       // TODO: deal with passing
+      let guess = guesses[guessIdx]
       let answer = await this.logAnswer(
-        "Enter the fast money answer (hit enter for no answer)",
+        `Enter the fast money answer for question #${guessIdx + 1} (hit enter for now answer)`,
         guess.question_id,
         true
       );
@@ -412,8 +409,6 @@ class EpisodeRecording {
 
       await Guess.create(guess);
     }
-
-    // TODO: Show final score, and whether or not the family won!
   }
 
   toggleCurrentTeam() {
