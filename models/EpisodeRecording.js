@@ -404,7 +404,7 @@ class EpisodeRecording {
       // TODO: deal with passing
       let guess = guesses[guessIdx]
       let answer = await this.logAnswer(
-        `Enter the fast money answer for question #${+guessIdx + 1} (hit enter for now answer)`,
+        `Enter the fast money answer for question #${+guessIdx + 1} (hit enter for no answer)`,
         guess.question_id,
         true
       );
