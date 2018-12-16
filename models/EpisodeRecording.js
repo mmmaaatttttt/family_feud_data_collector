@@ -144,7 +144,7 @@ class EpisodeRecording {
 
         // 4. You're on the team that didn't buzz in,
         //  but your answer is lower than the other team's guess
-        let isWorseAnswer = guessesSoFar.length === 2 && !isBetterAnswer;
+        let isWorseAnswer = guessCameFromTeamThatDidntBuzz && !isBetterAnswer;
         if (isBestAnswer || isOnlyAnswer || isBetterAnswer || isWorseAnswer) {
           teamDecided = true;
           if (isWorseAnswer) this.toggleCurrentTeam();
@@ -404,7 +404,7 @@ class EpisodeRecording {
       // TODO: deal with passing
       let guess = guesses[guessIdx]
       let answer = await this.logAnswer(
-        `Enter the fast money answer for question #${guessIdx + 1} (hit enter for now answer)`,
+        `Enter the fast money answer for question #${+guessIdx + 1} (hit enter for now answer)`,
         guess.question_id,
         true
       );
