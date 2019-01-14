@@ -62,7 +62,7 @@ class Episode {
       Team.find(this.right_team_id)
     ]);
     let points = await Promise.all(teams.map(t => t.points(this.id)));
-    let questions = await this.questions();
+    // let questions = await this.questions();
 
     for (let i = 0; i < teams.length; i++) {
       // one way to win: get > 300 points

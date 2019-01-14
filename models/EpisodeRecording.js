@@ -42,10 +42,16 @@ class EpisodeRecording {
       await this.setCurrentQuestion();
       await this.determineBuzzerWinner();
 
-      console.log(`The ${this.currentTeam.name} family is ready to guess!`);
-
-      await this.logGuessesAndStrikes(numAnswers);
-      winningTeam = await this.episode.getWinner();
+      // if sudden death, whoever wins the buzzer goes to fast money
+      if (this.currentQuestion.round_type === "sudden_death") {
+        winningTeam = this.currentTeam;
+      } else {
+        // otherwise, proceed as usual to log questions
+        console.log(`The ${this.currentTeam.name} family is ready to guess!`);
+  
+        await this.logGuessesAndStrikes(numAnswers);
+        winningTeam = await this.episode.getWinner();
+      }
     } while (!winningTeam);
 
     // in the event that not everone guessed during the episode,
@@ -90,8 +96,8 @@ class EpisodeRecording {
       round_type: isFastMoney
         ? "fast_money"
         : await choose(
-            `How are point values determined? single, double, or triple?`,
-            ["single", "double", "triple"]
+            `How are point values determined? single, double, triple, or sudden_death?`,
+            ["single", "double", "triple", "sudden_death"]
           ),
       team_decides_to_play: !isFastMoney || null
     };
