@@ -56,13 +56,14 @@ class Episode {
     return results.rows.map(row => new Question(row));
   }
 
-  async getWinner() {
+  async getWinner(countPointsOnSteal, firstTo300Wins) {
     let teams = await Promise.all([
       Team.find(this.left_team_id),
       Team.find(this.right_team_id)
     ]);
-    let points = await Promise.all(teams.map(t => t.points(this.id)));
-    // let questions = await this.questions();
+    let points = await Promise.all(
+      teams.map(t => t.points(this.id, countPointsOnSteal))
+    );
 
     for (let i = 0; i < teams.length; i++) {
       // one way to win: get > 300 points
@@ -71,10 +72,15 @@ class Episode {
 
       // another way to win: get enough points after 4 questions,
       // at which point play proceeds to fast money (maybe?)
-      // let morePointsAfterEnoughQuestions =
-      //   questions.length >= 4 && points[i] === Math.max(...points);
+      let questions = await this.questions();
+      let morePointsAfterEnoughQuestions =
+        questions.length >= 4 && points[i] === Math.max(...points);
 
-      // if (enoughPointsToWin || morePointsAfterEnoughQuestions) return teams[i];
+      if (
+        enoughPointsToWin ||
+        (!firstTo300Wins && morePointsAfterEnoughQuestions)
+      )
+        return teams[i];
     }
     return null;
   }

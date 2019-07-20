@@ -84,7 +84,14 @@ class Team {
     return results.rows.map(row => new Person(row));
   }
 
-  async points(episode_id) {
+  async points(episode_id, countPointsOnSteal) {
+    let whereStart = `
+      WHERE g.person_id IS NOT NULL
+      AND q.episode_id = $1
+    `;
+    if (countPointsOnSteal) {
+      whereStart = `WHERE q.episode_id = $1`;
+    }
     const results = await db.query(`
       SELECT q.winning_team_id, SUM(
         CASE WHEN q.round_type = 'single' THEN a.points
@@ -97,8 +104,7 @@ class Team {
       ON a.id = g.matching_answer_id
       LEFT JOIN questions q
       ON g.question_id = q.id
-      WHERE g.person_id IS NOT NULL
-      AND q.episode_id = $1
+      ${whereStart}
       AND q.round_type != 'fast_money'
       GROUP BY winning_team_id
       HAVING q.winning_team_id = $2

@@ -23,6 +23,8 @@ class EpisodeRecording {
   async logNewEpisode() {
     let winningTeam = null;
     await this.setEpisodeAndTeams();
+    const countPointsOnSteal = this.episode.season
+      .steal_includes_stolen_answer_points;
 
     console.log("\n\nLet's play the feud!\n\n");
 
@@ -31,7 +33,10 @@ class EpisodeRecording {
       let dirs = ["left", "right"];
       for (let dir of dirs) {
         let name = this.teams[dir].name;
-        let points = await this.teams[dir].points(this.episode.id);
+        let points = await this.teams[dir].points(
+          this.episode.id,
+          countPointsOnSteal
+        );
         console.log(`${name} Family: ${points} points.`);
       }
 
@@ -48,9 +53,12 @@ class EpisodeRecording {
       } else {
         // otherwise, proceed as usual to log questions
         console.log(`The ${this.currentTeam.name} family is ready to guess!`);
-  
+
         await this.logGuessesAndStrikes(numAnswers);
-        winningTeam = await this.episode.getWinner();
+        winningTeam = await this.episode.getWinner(
+          countPointsOnSteal,
+          this.episode.season.first_to_300_points_wins
+        );
       }
     } while (!winningTeam);
 
@@ -71,19 +79,20 @@ class EpisodeRecording {
     this.teams.right = await Team.findOrCreate(name2);
 
     let episode_number = +(await prompt("What's the episode number?"));
-    let season = +(await prompt("What season is the episode in?"));
-    await Season.findOrCreate(season);
+    let seasonId = +(await prompt("What season is the episode in?"));
+    let season = await Season.findOrCreate(seasonId);
     let air_date = await prompt("When did the episode air?");
 
     let episode = await Episode.create({
       episode_number,
-      season,
+      season: seasonId,
       air_date,
       left_team_id: this.teams.left.id,
       right_team_id: this.teams.right.id
     });
 
     this.episode = episode;
+    this.episode.season = season;
   }
 
   async setCurrentQuestion(isFastMoney = false) {
@@ -141,12 +150,14 @@ class EpisodeRecording {
 
         // 2. You're not the first person to guess, you guess an answer,
         // and you were on the second team to guess
-        let isOnlyAnswer = guessCameFromTeamThatDidntBuzz && answersSoFar.length === 1;
+        let isOnlyAnswer =
+          guessCameFromTeamThatDidntBuzz && answersSoFar.length === 1;
 
         // 3. You're on the team that didn't buzz in, but your answer is better
         // than the other team's guess
         let isBetterAnswer =
-          guessCameFromTeamThatDidntBuzz && answer.order === Math.min(...orders);
+          guessCameFromTeamThatDidntBuzz &&
+          answer.order === Math.min(...orders);
 
         // 4. You're on the team that didn't buzz in,
         //  but your answer is lower than the other team's guess
@@ -158,7 +169,7 @@ class EpisodeRecording {
       } else {
         // if there's no answer, the buzzer round can still end
         // provided there was a previous answer
-        // and the team that guessed isn't the team that buzzed in 
+        // and the team that guessed isn't the team that buzzed in
         if (answersSoFar.length === 1 && guessCameFromTeamThatDidntBuzz) {
           teamDecided = true;
           this.toggleCurrentTeam();
@@ -235,6 +246,10 @@ class EpisodeRecording {
   async logGuessesAndStrikes(numAnswers) {
     let numStrikes = 0;
     let foundAnswers = [];
+    let maxStrikes = 3;
+    if (this.currentQuestion.round_type === "triple") {
+      maxStrikes = this.episode.season.num_strikes_for_triple_rounds;
+    }
 
     // loop while there are fewer than three strikes
     // and while the team hasn't found all of the answers
@@ -250,12 +265,12 @@ class EpisodeRecording {
       }
 
       foundAnswers = await this.currentQuestion.answers();
-    } while (numStrikes < 3 && foundAnswers.length < numAnswers);
+    } while (numStrikes < maxStrikes && foundAnswers.length < numAnswers);
 
-    await this.handleRoundEnd(foundAnswers, numAnswers, numStrikes);
+    await this.handleRoundEnd(foundAnswers, numAnswers, numStrikes, maxStrikes);
   }
 
-  async handleRoundEnd(foundAnswers, numAnswers, numStrikes) {
+  async handleRoundEnd(foundAnswers, numAnswers, numStrikes, maxStrikes) {
     // if the round ends because there are no more answers,
     // the current team wins!
     if (foundAnswers.length === numAnswers) {
@@ -263,7 +278,7 @@ class EpisodeRecording {
     }
 
     // if there are thee strikes, the other team has an opportunity to steal!
-    if (numStrikes === 3) {
+    if (numStrikes === maxStrikes) {
       this.guessOrder++;
       this.toggleCurrentTeam();
       console.log(
@@ -293,7 +308,9 @@ class EpisodeRecording {
         question_id,
         text: answerText,
         points: +(await prompt("How many points was this answer worth?")),
-        order: isFastMoney ? null : +(await prompt("What's this answer's ranking?"))
+        order: isFastMoney
+          ? null
+          : +(await prompt("What's this answer's ranking?"))
       };
       answer = await Answer.create(answerData);
     }
@@ -360,7 +377,9 @@ class EpisodeRecording {
       let guessData = {
         question_id: this.currentQuestion.id,
         text: await prompt(
-          `What did ${firstPerson.first_name} guess for this fast money question?`,
+          `What did ${
+            firstPerson.first_name
+          } guess for this fast money question?`,
           { default: "" }
         ),
         order: 1,
@@ -389,8 +408,10 @@ class EpisodeRecording {
       let guessData = {
         question_id: questions[i].id,
         text: await prompt(
-          `What did ${secondPerson.first_name} guess for this fast money question?`,
-          { default: ""}
+          `What did ${
+            secondPerson.first_name
+          } guess for this fast money question?`,
+          { default: "" }
         ),
         order: 2,
         person_id: secondPerson.id
@@ -408,9 +429,10 @@ class EpisodeRecording {
   async logFastMoneyAnswers(guesses) {
     for (let guessIdx in guesses) {
       // TODO: deal with passing
-      let guess = guesses[guessIdx]
+      let guess = guesses[guessIdx];
       let answer = await this.logAnswer(
-        `Enter the fast money answer for question #${+guessIdx + 1} (hit enter for no answer)`,
+        `Enter the fast money answer for question #${+guessIdx +
+          1} (hit enter for no answer)`,
         guess.question_id,
         true
       );
